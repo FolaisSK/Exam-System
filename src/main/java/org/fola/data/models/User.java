@@ -1,5 +1,6 @@
 package org.fola.data.models;
 
+import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -14,6 +15,7 @@ import java.util.List;
 
 @Data
 @Document(collection = "users")
+@Builder
 public class User implements UserDetails {
     @Id
     private String id;
