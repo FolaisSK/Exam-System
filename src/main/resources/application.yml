@@ -1,6 +1,9 @@
 spring:
   application:
     name: ExamSystem
+  security:
+    filter:
+      order: -100
 
   data:
     mongodb:
@@ -17,7 +20,3 @@ logging:
   level:
     org.springframework.data.mongodb: DEBUG
 
-spring:
-  security:
-    filter:
-      order: -100
