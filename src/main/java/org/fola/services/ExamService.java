@@ -73,6 +73,12 @@ public class ExamService {
         return toResponse(exam);
     }
 
+    public Exam findByAccessCode(String accessCode) {
+        return examRepository.findByAccessCode(accessCode)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No published exam found with that access code"));
+    }
+
     public ExamResponse updateExam(String examId,
                                    UpdateExamRequest request,
                                    User teacher) {
