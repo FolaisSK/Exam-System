@@ -63,7 +63,7 @@ public class QuestionBankService {
                 .map(opt -> Option.builder()
                         .id(UUID.randomUUID().toString())
                         .text(opt.getText())
-                        .isCorrect(opt.isCorrect())
+                        .correct(opt.isCorrect())
                         .build())
                 .collect(Collectors.toList());
 

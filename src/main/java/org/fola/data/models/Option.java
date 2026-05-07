@@ -1,5 +1,6 @@
 package org.fola.data.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 
@@ -8,5 +9,6 @@ import lombok.Data;
 public class Option {
     private String id;
     private String text;
-    private boolean isCorrect;
+    @JsonProperty("isCorrect")
+    private boolean correct;
 }

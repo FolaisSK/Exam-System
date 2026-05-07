@@ -1,5 +1,6 @@
 package org.fola.dtos.requests;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
@@ -7,6 +8,6 @@ import lombok.Data;
 public class OptionRequest {
     @NotBlank(message = "Option text is required")
     private String text;
-
-    private boolean isCorrect;
+    @JsonProperty("isCorrect")
+    private boolean correct;
 }
