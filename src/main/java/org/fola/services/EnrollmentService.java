@@ -1,7 +1,9 @@
 package org.fola.services;
 
+import jakarta.validation.Valid;
 import org.fola.data.models.*;
 import org.fola.data.repositories.EnrollmentRepository;
+import org.fola.dtos.requests.EnrollStudentRequest;
 import org.fola.dtos.requests.JoinExamRequest;
 import org.fola.dtos.responses.EnrollmentResponse;
 import org.fola.exceptions.BadRequestException;
@@ -52,7 +54,7 @@ public class EnrollmentService {
         return toResponse(enrollmentRepository.save(enrollment));
     }
 
-    public EnrollmentResponse enrollStudent(EnrollStudentRequest request,
+    public EnrollmentResponse enrollStudent(@Valid EnrollStudentRequest request,
                                             User teacher) {
         Exam exam = examService.findExamById(request.getExamId());
 

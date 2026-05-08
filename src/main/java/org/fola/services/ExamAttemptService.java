@@ -1,19 +1,24 @@
 package org.fola.services;
 
-import org.fola.data.models.Answer;
-import org.fola.data.models.AttemptStatus;
-import org.fola.data.models.ExamAttempt;
-import org.fola.data.models.User;
+import org.fola.data.models.*;
 import org.fola.data.repositories.AnswerRepository;
 import org.fola.data.repositories.ExamAttemptRepository;
 import org.fola.data.repositories.ExamQuestionRepository;
+import org.fola.dtos.requests.SaveAnswerRequest;
+import org.fola.dtos.responses.AnswerResponse;
 import org.fola.dtos.responses.AttemptResultResponse;
 import org.fola.dtos.responses.ExamAttemptResponse;
+import org.fola.exceptions.BadRequestException;
+import org.fola.exceptions.DuplicateException;
 import org.fola.exceptions.ForbiddenException;
+import org.fola.exceptions.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ExamAttemptService {
@@ -151,6 +156,90 @@ public class ExamAttemptService {
                 .totalPoints(totalPoints)
                 .percentage(percentage)
                 .breakdown(breakdown)
+                .build();
+    }
+
+    public AttemptResultResponse getAttemptResult(String attemptId, User student) {
+        ExamAttempt attempt = findAttemptForStudent(attemptId, student);
+
+        if (attempt.getStatus() != AttemptStatus.SUBMITTED) {
+            throw new BadRequestException(
+                    "Attempt has not been submitted yet");
+        }
+
+        return submitAttempt(attemptId, student);
+    }
+
+    public List<ExamAttemptResponse> getMyAttempts(String examId, User student) {
+        return examAttemptRepository
+                .findAllByStudentIdAndExamId(student.getId(), examId)
+                .stream()
+                .map(this::toAttemptResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<ExamAttemptResponse> getAttemptsForExam(String examId,
+                                                        User teacher) {
+        examService.findExamById(examId);
+        return examAttemptRepository.findAllByExamId(examId)
+                .stream()
+                .map(this::toAttemptResponse)
+                .collect(Collectors.toList());
+    }
+
+    private ExamAttempt findAttemptForStudent(String attemptId, User student) {
+        return examAttemptRepository
+                .findByIdAndStudentId(attemptId, student.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Attempt not found with id: " + attemptId));
+    }
+
+    private void checkAttemptInProgress(ExamAttempt attempt) {
+        if (attempt.getStatus() == AttemptStatus.SUBMITTED) {
+            throw new DuplicateException(
+                    "This attempt has already been submitted");
+        }
+    }
+
+    private void validateQuestionBelongsToExam(String examId, String questionId) {
+        if (!examQuestionRepository.existsByExamIdAndQuestionId(
+                examId, questionId)) {
+            throw new BadRequestException(
+                    "Question does not belong to this exam");
+        }
+    }
+
+    private void validateOptionBelongsToQuestion(String questionId,
+                                                 String optionId) {
+        Question question = questionBankService.findQuestionById(questionId);
+        boolean optionExists = question.getOptions().stream()
+                .anyMatch(opt -> opt.getId().equals(optionId));
+        if (!optionExists) {
+            throw new BadRequestException(
+                    "Option does not belong to this question");
+        }
+    }
+
+    private ExamAttemptResponse toAttemptResponse(ExamAttempt attempt) {
+        return ExamAttemptResponse.builder()
+                .id(attempt.getId())
+                .examId(attempt.getExamId())
+                .studentId(attempt.getStudentId())
+                .status(attempt.getStatus().name())
+                .startTime(attempt.getStartTime())
+                .endTime(attempt.getEndTime())
+                .score(attempt.getScore())
+                .totalPoints(attempt.getTotalPoints())
+                .build();
+    }
+
+    private AnswerResponse toAnswerResponse(Answer answer) {
+        return AnswerResponse.builder()
+                .id(answer.getId())
+                .attemptId(answer.getAttemptId())
+                .questionId(answer.getQuestionId())
+                .selectedOptionId(answer.getSelectedOptionId())
+                .answeredAt(answer.getAnsweredAt())
                 .build();
     }
 }
