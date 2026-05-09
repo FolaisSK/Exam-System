@@ -85,14 +85,45 @@ public class ExamAttemptService {
         return toAnswerResponse(answerRepository.save(answer));
     }
 
+// ── Submit attempt ────────────────────────────────────────────────────────
+
     public AttemptResultResponse submitAttempt(String attemptId, User student) {
         ExamAttempt attempt = findAttemptForStudent(attemptId, student);
         checkAttemptInProgress(attempt);
 
+        attempt.setStatus(AttemptStatus.SUBMITTED);
+        attempt.setEndTime(LocalDateTime.now());
+
+        AttemptResultResponse result = buildResult(attempt);
+
+        attempt.setScore(result.getScore());
+        attempt.setTotalPoints(result.getTotalPoints());
+        examAttemptRepository.save(attempt);
+
+        return result;
+    }
+
+// ── Get result of a specific attempt ──────────────────────────────────────
+
+    public AttemptResultResponse getAttemptResult(String attemptId, User student) {
+        ExamAttempt attempt = findAttemptForStudent(attemptId, student);
+
+        if (attempt.getStatus() != AttemptStatus.SUBMITTED) {
+            throw new BadRequestException(
+                    "Attempt has not been submitted yet");
+        }
+
+        return buildResult(attempt);
+    }
+
+// ── Build result from a saved attempt ─────────────────────────────────────
+
+    private AttemptResultResponse buildResult(ExamAttempt attempt) {
         List<ExamQuestion> examQuestions = examQuestionRepository
                 .findAllByExamIdOrderByOrderIndex(attempt.getExamId());
 
-        List<Answer> answers = answerRepository.findAllByAttemptId(attemptId);
+        List<Answer> answers = answerRepository
+                .findAllByAttemptId(attempt.getId());
 
         double totalPoints = 0;
         double earnedScore = 0;
@@ -139,12 +170,6 @@ public class ExamAttemptService {
                 ? Math.round((earnedScore / totalPoints) * 1000.0) / 10.0
                 : 0;
 
-        attempt.setScore(earnedScore);
-        attempt.setTotalPoints(totalPoints);
-        attempt.setStatus(AttemptStatus.SUBMITTED);
-        attempt.setEndTime(LocalDateTime.now());
-        examAttemptRepository.save(attempt);
-
         return AttemptResultResponse.builder()
                 .id(attempt.getId())
                 .examId(attempt.getExamId())
@@ -157,17 +182,6 @@ public class ExamAttemptService {
                 .percentage(percentage)
                 .breakdown(breakdown)
                 .build();
-    }
-
-    public AttemptResultResponse getAttemptResult(String attemptId, User student) {
-        ExamAttempt attempt = findAttemptForStudent(attemptId, student);
-
-        if (attempt.getStatus() != AttemptStatus.SUBMITTED) {
-            throw new BadRequestException(
-                    "Attempt has not been submitted yet");
-        }
-
-        return submitAttempt(attemptId, student);
     }
 
     public List<ExamAttemptResponse> getMyAttempts(String examId, User student) {
